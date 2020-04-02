@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "rootDir": "./src",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "target": "ES5",
+    "module": "commonjs",
+    "strict": true,
+    "sourceMap": true,
+    "typeRoots": [
+      "node_modules/@types"
+    ]
+  },
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
+}
