@@ -12,12 +12,10 @@ export class VillageController {
         }
     }
 
-    @Get("/village/:nick")
+    @Get("/village")
     @Render("village")
-    getVillage(@Param("nick") nick: string) {
-        return {
-            nick
-        }
+    getVillage() {
+        return undefined;
     }
 
     @Get("/townhall")
