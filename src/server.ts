@@ -21,15 +21,16 @@ app
     .use(express.static(path.join(__dirname,'/public')))
     .set('views', __dirname + '/views')
     .set('view engine', 'mustache')
+;
 
 // initialize a simple http server
 const httpsrv = http.createServer(app);
 const io = socketio(httpsrv);
 
 io.on('connection', (socket: Socket) => {
-    console.log("An user connected!")
+    console.log("An user connected!");
     // connection is up, let's add a simple simple event
-    socket.on('message', (message: string) => {
+    socket.on('chat message', (message: string) => {
 
         // log the received message and send it back to the client
         console.log('received: %s', message);
@@ -40,4 +41,4 @@ io.on('connection', (socket: Socket) => {
     socket.send('Hi there, I am a WebSocket server');
 });
 
-const server = httpsrv.listen(PORT, () => console.log(`Listening on ${PORT}`));
+httpsrv.listen(PORT, () => console.log(`Listening on ${PORT}`));
