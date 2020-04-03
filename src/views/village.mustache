@@ -20,9 +20,13 @@
         font-size: .66rem;
     }
     #chats {
-        height: 10em;
+        position: absolute;
+        height: 80%;
     }
-    .forms {position: fixed; bottom: 0; width: 100%;}
+    .pagecontainer {
+        position: relative;
+    }
+    .forms {position: absolute; bottom: 0; width: 100%;}
     #messages { list-style-type: none; margin: 0; padding: 0;}
     #messages li { position: relative; padding: 5px 10px; }
     #messages li:nth-child(odd) { background: #eee; }
@@ -33,24 +37,25 @@
         font-style: italic;
     }
 </style>
-<div id="role"></div>
-<div class="container">
-    <div id="chats" class="columns is-gapless">
-        <ul id="messages" class="column"></ul>
-        <ul id="wolves" class="column is-danger"></ul>
+<div class="pagecontainer container">
+    <div id="role"></div>
+        <div id="chats" class="columns is-gapless">
+            <ul id="messages" class="column"></ul>
+            <ul id="wolves" class="column is-danger"></ul>
+        </div>
     </div>
-</div>
-<div class="forms columns">
-    <form id="villagerForm" action="" class="is-primary column">
-        <div class="field is-horizontal columns">
-            <input id="m" class="input column is-four-fifths" autocomplete="off" /><button class="button is-link column">Send</button>
-        </div>
-    </form>
-    <form id="werewolfForm" action="" class="is-danger column">
-        <div class="field is-horizontal columns">
-            <input id="mw" class="input column is-four-fifths" autocomplete="off" {{ !wolf ? disabled }} /><button class="button is-danger column">Send</button>
-        </div>
-    </form>
+    <div class="forms columns">
+        <form id="villagerForm" action="" class="is-primary column">
+            <div class="field is-horizontal columns">
+                <input id="m" class="input column is-four-fifths" autocomplete="off" /><button class="button is-link column">Send</button>
+            </div>
+        </form>
+        <form id="werewolfForm" action="" class="is-danger column">
+            <div class="field is-horizontal columns">
+                <input id="mw" class="input column is-four-fifths" autocomplete="off" {{ !wolf ? disabled }} /><button class="button is-danger column">Send</button>
+            </div>
+        </form>
+    </div>
 </div>
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
