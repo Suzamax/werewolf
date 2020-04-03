@@ -80,6 +80,11 @@
             msg = $('#m').val();
             if (msg.startsWith("/"))
                 switch (msg.substr(1,4)) {
+                    case "iden":
+                        if (global.role == "GAMEMASTER")
+                            socket.emit('get identities');
+                        else alert("You don't have permissions to get identities!");
+                        break;
                     case "role":
                         if (global.role == "Viewer")
                             socket.emit('request role', nick);
@@ -130,11 +135,17 @@
         socket.on('game aborted', function() {
             $('#messages').append($('<li class="server is-danger">').text('Game aborted! Reload page.'));
         });
+        socket.on('no role available', function() {
+            $('#messages').append($('<li class="server is-danger">').text('No role available.'));
+        });
         socket.on('gamemaster', function(code) {
             $('#messages').append($('<li class="server">').text('You have created the game!'));
         });
         socket.on('nick changed', function (msg) {
             $('#messages').append($('<li class="server">').text(msg.oldNick + ' is now ' + msg.newNick));
+        });
+        socket.on('get identities', function (msg) {
+            $('#messages').append($('<li class="server">').text(msg));
         });
     }(this));
 </script>

@@ -39,6 +39,7 @@ const roles = [
 ];
 
 let availableRoles: string[] = [];
+let assignedRoles: Map<string, string> = new Map<string, string>();
 let progress = false;
 
 const general = io
@@ -82,9 +83,21 @@ const general = io
 
         socket.on('request role', (nick: string) => {
             console.log('%s requests a role!', nick);
-            const r = availableRoles.pop();
-            console.log("Assigning role %s", r);
-            socket.emit('role assignation', r);
+            if (availableRoles.length > 0) {
+                const r = availableRoles.pop();
+                console.log("Assigning role %s to %s", r, nick);
+                assignedRoles.set(nick, r || 'Viewer');
+                socket.emit('role assignation', r);
+            }
+            else socket.emit('no role available');
+        });
+
+        socket.on('get identities', () => {
+            let str: string = "";
+            assignedRoles.forEach((value: string, key: string) => {
+                str += key + ": " + value + ", ";
+            });
+            socket.emit('get identities', str);
         });
 
         // send immediatly a feedback to the incoming connection
