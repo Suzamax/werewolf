@@ -85,12 +85,18 @@
                             socket.emit('request role', nick);
                         else alert("You do have a role!");
                         break;
+                    case "abrt":
+                        if (global.role == "GAMEMASTER") socket.emit('abort game');
+                        else alert("You don't have permissions to abort the game!");
+                        break;
                     case "init":
-                        socket.emit('init game', {
-                            w: msg.split(" ")[1],
-                            v: msg.split(" ")[2],
-                            r: msg.split(" ")[3]
-                        });
+                        if (nick == "GAMEMASTER")
+                            socket.emit('init game', {
+                                w: msg.split(" ")[1] || 2,
+                                v: msg.split(" ")[2] || 2,
+                                r: msg.split(" ")[3] || 31
+                            });
+                        else alert("Only GAMEMASTER has permissions to init games");
                         break;
                     case "nick":
                         socket.emit('change nick', nick, msg.split(" ")[1]);
@@ -120,6 +126,9 @@
         });
         socket.on('progress', function(progress) {
             inProgress = progress;
+        });
+        socket.on('game aborted', function() {
+            $('#messages').append($('<li class="server is-danger">').text('Game aborted! Reload page.'));
         });
         socket.on('gamemaster', function(code) {
             $('#messages').append($('<li class="server">').text('You have created the game!'));

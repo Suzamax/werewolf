@@ -62,8 +62,17 @@ const general = io
                     availableRoles.push(roles[i]);
             availableRoles = _.shuffle(availableRoles);
 
+            console.log(availableRoles);
+
             socket.emit('gamemaster');
             socket.emit('role assignation', "GAMEMASTER");
+        });
+
+        socket.on('abort game', () => {
+            progress = false;
+            availableRoles = [];
+            console.log("Game aborted");
+            general.emit('game aborted');
         });
 
         socket.on('change nick', (oldNick: string, newNick: string) => {
