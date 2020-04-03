@@ -75,7 +75,7 @@
         $('#werewolfForm').submit(function(e){
             e.preventDefault();
             msg = $('#mw').val();
-            if (global.wolf) wolves.emit('wolf message', { nick, msg });
+            if (global.wolf) if (msg != "") wolves.emit('wolf message', { nick, msg });
             else alert("You are not a Werewolf!");
             $('#mw').val('');
             return false;
