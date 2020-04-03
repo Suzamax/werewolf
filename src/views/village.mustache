@@ -35,18 +35,16 @@
          padding: 5px 10px;
     }
     #messages li:nth-child(odd) { background: #eee; }
-    #wolves { position: relative; width: 100%; list-style-type: none; margin: 0; padding: 0;}
-    #wolves li { position: relative; width: 100%; padding: 5px 10px; }
-    #wolves li:nth-child(odd) { background: #fdd; }
+    .wolves{ background: #fee; }
+    .wolves:nth-child(odd) { background: #fdd; }
     .server {
         font-style: italic;
     }
 </style>
 <div class="pagecontainer">
     <div id="role"></div>
-        <div id="chats" class="columns is-gapless">
-            <ul id="messages" class="column"></ul>
-            <ul id="wolves" class="column is-danger"></ul>
+        <div id="chats">
+            <ul id="messages"></ul>
         </div>
     </div>
     <div class="forms columns">
@@ -137,7 +135,7 @@
                 global.wolf = true;
                 global.wolves = io.connect(window.location.hostname + ":" + window.location.port + '/wolves');
                 global.wolves.on('wolf message', function(msg) {
-                    $('#wolves').append($('<li>').text(msg.msg).append($('<span class="tag is-' + (msg.nick == "GAMEMASTER" ? "info" : "danger") + '">').text(msg.nick)));
+                    $('#messages').append($('<li class="wolves">').text(msg.msg).append($('<span class="tag is-' + (msg.nick == "GAMEMASTER" ? "info" : "danger") + '">').text(msg.nick)));
                 });
             }
         });
