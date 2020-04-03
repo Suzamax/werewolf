@@ -34,9 +34,11 @@
     }
 </style>
 <div id="role"></div>
-<div id="chats" class="columns is-gapless">
-    <ul id="messages" class="column"></ul>
-    <ul id="wolves" class="column is-danger"></ul>
+<div class="container">
+    <div id="chats" class="columns is-gapless">
+        <ul id="messages" class="column"></ul>
+        <ul id="wolves" class="column is-danger"></ul>
+    </div>
 </div>
 <div class="forms columns">
     <form id="villagerForm" action="" class="is-primary column">
@@ -109,7 +111,8 @@
                     default:
                         alert("ERROR: Command not found.");
                 }
-            else socket.emit('chat message', { nick, msg });
+            else if (msg != "") socket.emit('chat message', { nick, msg });
+            else alert("Message is empty!");
             $('#m').val('');
             return false;
         });
