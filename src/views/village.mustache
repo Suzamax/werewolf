@@ -2,15 +2,37 @@
 
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    #role {
+        width: 100%;
+        background: #ddd;
+        text-align: center;
+    }
+    span {
+        position: absolute;
+        top: 0;
+        right: 0;
+        background: #000;
+        color: #eee;
+        padding: .25rem;
+        border-radius: 2px;
+        font-size: .66rem;
+    }
     form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
     form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
     form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-    #messages { list-style-type: none; margin: 0; padding: 0; }
-    #messages li { padding: 5px 10px; }
+    #messages { list-style-type: none; margin: 0; padding: 0; width: 49%;}
+    #messages li { position: relative; padding: 5px 10px; }
     #messages li:nth-child(odd) { background: #eee; }
+    #wolves { background: #fee; list-style-type: none; margin: 0; padding: 0; width: 49%;}
+    #wolves li { padding: 5px 10px; }
+    #wolves li:nth-child(odd) { background: #fdd; }
+    .server {
+        font-style: italic;
+    }
 </style>
 <h1 id="role"></h1>
 <ul id="messages"></ul>
+<ul id="wolves"></ul>
 <form action="">
     <input id="m" autocomplete="off" /><button>Send</button>
 </form>
@@ -18,43 +40,68 @@
 <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 <script>
     $(function () {
-        var socket = io();
-        var nick = "villager" + new Date().getDate().toString();
-        var role = "viewer";
+        var socket = io.connect(window.location.hostname + ":" + window.location.port + '/general'),
+            wolves = io.connect(window.location.hostname + ":" + window.location.port + '/wolves');
+        var nick = "villager" + new Date().getTime().toString();
+        var role = "Viewer";
         var inProgress = false;
+        var love = {
+            nick: undefined,
+            role: undefined
+        };
+        var wolf = false;
 
         socket.on('connect', function () {
             socket.emit('new connection', nick);
         });
 
         $('form').submit(function(e){
-            e.preventDefault(); // prevents page reloading
-            if ($('#m').val().startsWith("/"))
-            switch ($('#m').val().substr(1,4)) {
-                case "init":
-
-                case "nick":
-                    socket.emit('change nick', nick, $('#m').val().split(" ")[1]);
-                    break;
-                case "wolf":
-                    socket.emit('wolf message', $('#m').val().substr(6,-1));
-                    break;
-                default:
-                    alert("ERROR: Command not found.");
-            }
-            else socket.emit('chat message', $('#m').val());
+            e.preventDefault();
+            msg = $('#m').val();
+            if (msg.startsWith("/"))
+                switch (msg.substr(1,4)) {
+                    case "init":
+                        socket.emit('init game', {
+                            w: msg.split(" ")[1],
+                            v: msg.split(" ")[2],
+                            r: msg.split(" ")[3]
+                        });
+                        break;
+                    case "nick":
+                        socket.emit('change nick', nick, msg.split(" ")[1]);
+                        nick = msg.split(" ")[1];
+                        break;
+                    case "wolf":
+                        wolves.emit('access', msg.split(" ")[1]);
+                        break;
+                    default:
+                        alert("ERROR: Command not found.");
+                }
+            else socket.emit('chat message', { nick, msg });
             $('#m').val('');
             return false;
         });
         socket.on('chat message', function(msg) {
-            $('#messages').append($('<li>').text(msg));
+            $('#messages').append($('<li>').text(msg.msg).append($('<span>').text(msg.nick)));
         });
-        socket.on('role assignation', function(role) {
-            $('#role').append(role);
+        socket.on('role assignation', function(r) {
+            $('#role').val(r);
         });
         socket.on('progress', function(progress) {
             inProgress = progress;
-        })
+        });
+        socket.on('gamemaster', function(code) {
+            $('#messages').append($('<li class="server">').text('Send this code to the Werewolves: ' + code));
+        });
+        socket.on('nick changed', function (msg) {
+            $('#messages').append($('<li class="server">').text(msg.oldNick + ' is now ' + msg.newNick));
+        });
+
+        // Werewolves
+        wolves.on('accept', function() {
+            wolf = true;
+            $('#wolves').append($('<li class="server">').text('You have been accepted as a Werewolf'));
+        });
     });
 </script>
 {{> partials/footer }}

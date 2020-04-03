@@ -42,37 +42,66 @@ const roles = [
 let availableRoles: string[] = [];
 let progress = false;
 
-io.on('connection', (socket: Socket) => {
-    console.log("An user connected!");
-    socket.emit('progress', progress);
-    // connection is up, let's add a simple simple event
-    socket.on('chat message', (msg: string) => {
-        // log the received message and send it back to the client
-        console.log('received: %s', msg);
-        io.emit('chat message', msg);
+let secretCodeWolf: number;
+
+const general = io
+    .of("/general")
+    .on('connection', (socket: Socket) => {
+        console.log("An user connected!");
+        socket.emit('progress', progress);
+        // connection is up, let's add a simple simple event
+        socket.on('chat message', (msg: string) => {
+            // log the received message and send it back to the client
+            console.log(msg);
+            general.emit('chat message', msg);
+        });
+
+        socket.on('init game', obj => {
+            progress = true;
+            for (let i = 0; i < obj.w; i++) availableRoles.push("Werewolf");
+            for (let i = 0; i < obj.v; i++) availableRoles.push("Villager");
+            for (let i = 1; i < 7; i++)
+                if (((obj.r >> i) % 2) === 1)
+                    availableRoles.push(roles[i]);
+            availableRoles = _.shuffle(availableRoles);
+
+            secretCodeWolf = Math.floor(Math.random() * 32768);
+
+            socket.emit('gamemaster', secretCodeWolf);
+            socket.emit('role assignation', "GAMEMASTER");
+        });
+
+        socket.on('change nick', (oldNick: string, newNick: string) => {
+           console.log('%s is now %s', oldNick, newNick);
+           general.emit('nick changed', {oldNick, newNick});
+        });
+
+        socket.on('request role', (nick: string) => {
+            console.log('%s requests a role!', nick);
+            const r = availableRoles.pop();
+            console.log("Assigning role %s", r);
+            socket.emit('role assignation', r);
+        });
+
+        // send immediatly a feedback to the incoming connection
+        socket.send('Hi there, I am a WebSocket server');
     });
 
-    socket.on('init game', (w: number, v: number, role: number) => {
-        progress = true;
-        for (let i = 0; i < w; i++) availableRoles.push("Werewolf");
-        for (let i = 0; i < w; i++) availableRoles.push("Villager");
-        for (let i = 1; i < 7; i++)
-            if (((role >> i) % 2) === 1)
-                availableRoles.push(roles[i]);
+const wolves = io
+    .of("/wolves")
+    .on('connection', (socket: Socket) => {
+        console.log("WOOF! WOOF!");
+        socket.on('access', (code: number) => {
+            if (code == secretCodeWolf) {
+                socket.send('accept');
+                console.log("Awoo~");
+            }
+            else socket.disconnect(true);
+        });
 
-        availableRoles = _.shuffle(availableRoles);
-    });
-
-    socket.on('change nick', (oldNick: string, newNick: string) => {
-       console.log('%s is now %s', oldNick, newNick);
-    });
-
-    socket.on('wolf message', (msg: string) => {
-        console.log('wolf says: %s', msg);
-    });
-
-    // send immediatly a feedback to the incoming connection
-    socket.send('Hi there, I am a WebSocket server');
-});
-
+        socket.on('wolf message', (msg) => {
+            console.log(msg);
+        });
+    })
+;
 httpsrv.listen(PORT, () => console.log(`Listening on ${PORT}`));
