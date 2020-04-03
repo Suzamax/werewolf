@@ -74,6 +74,7 @@ const general = io
             availableRoles = [];
             console.log("Game aborted");
             general.emit('game aborted');
+            assignedRoles = new Map<string, string>();
         });
 
         socket.on('change nick', (oldNick: string, newNick: string) => {
