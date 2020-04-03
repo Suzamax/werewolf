@@ -40,22 +40,24 @@ const roles = [
 
 let availableRoles: string[] = [];
 let assignedRoles: Map<string, string> = new Map<string, string>();
-let progress = false;
 
 const general = io
     .of("/general")
     .on('connection', (socket: Socket) => {
         console.log("An user connected!");
-        socket.emit('progress', progress);
+
+        socket.on('join room', room => {
+            socket.join(room);
+        });
+
         // connection is up, let's add a simple simple event
-        socket.on('chat message', (msg: string) => {
+        socket.on('chat message', (room: string, nick:string, msg: string) => {
             // log the received message and send it back to the client
-            console.log(msg);
-            general.emit('chat message', msg);
+            console.log(nick + ": " + msg);
+            general.to(room).emit('chat message', nick, msg);
         });
 
         socket.on('init game', obj => {
-            progress = true;
             for (let i = 0; i < obj.w; i++) availableRoles.push("Werewolf");
             for (let i = 0; i < obj.v; i++) availableRoles.push("Villager");
             for (let i = 1; i < 7; i++)
@@ -65,40 +67,39 @@ const general = io
 
             console.log(availableRoles);
 
-            socket.emit('gamemaster');
-            socket.emit('role assignation', "GAMEMASTER");
+            socket.to(obj.room).emit('gamemaster');
+            socket.to(obj.room).emit('role assignation', "GAMEMASTER");
         });
 
-        socket.on('abort game', () => {
-            progress = false;
+        socket.on('abort game', (room) => {
             availableRoles = [];
             console.log("Game aborted");
-            general.emit('game aborted');
+            general.to(room).emit('game aborted');
             assignedRoles = new Map<string, string>();
         });
 
-        socket.on('change nick', (oldNick: string, newNick: string) => {
+        socket.on('change nick', (room, oldNick: string, newNick: string) => {
            console.log('%s is now %s', oldNick, newNick);
-           general.emit('nick changed', {oldNick, newNick});
+           general.to(room).emit('nick changed', {oldNick, newNick});
         });
 
-        socket.on('request role', (nick: string) => {
+        socket.on('request role', (room, nick: string) => {
             console.log('%s requests a role!', nick);
             if (availableRoles.length > 0) {
                 const r = availableRoles.pop();
                 console.log("Assigning role %s to %s", r, nick);
                 assignedRoles.set(nick, r || 'Viewer');
-                socket.emit('role assignation', r);
+                socket.to(room).emit('role assignation', r);
             }
-            else socket.emit('no role available');
+            else socket.to(room).emit('no role available');
         });
 
-        socket.on('get identities', () => {
+        socket.on('get identities', (room) => {
             let str: string = "";
             assignedRoles.forEach((value: string, key: string) => {
                 str += key + ": " + value + ", ";
             });
-            socket.emit('get identities', str);
+            socket.to(room).emit('get identities', str);
         });
 
         // send immediatly a feedback to the incoming connection
@@ -109,10 +110,10 @@ const wolves = io
     .of("/wolves")
     .on('connection', (socket: Socket) => {
         console.log("WOOF! WOOF!");
-        socket.on('wolf message', (msg: string) => {
+        socket.on('wolf message', (room, msg: string) => {
             // log the received message and send it back to the client
             console.log(msg);
-            wolves.emit('wolf message', msg);
+            wolves.to(room).emit('wolf message', msg);
         });
     })
 ;

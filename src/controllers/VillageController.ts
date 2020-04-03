@@ -1,4 +1,4 @@
-import {Controller, Param, Body, Get, Post, Put, Delete, Render} from "routing-controllers";
+import {Controller, Param, Get, Redirect, Render} from "routing-controllers";
 
 @Controller()
 export class VillageController {
@@ -27,8 +27,14 @@ export class VillageController {
         };
     }
 
-    @Post("/townhall/create/:w/:v/:r")
-    post(@Param("w") w: number, @Param("v") v: number, @Param("r") r: number) {
-        return undefined;
+    @Get("/create/:w/:v/:r")
+    @Redirect("/village")
+    getNewVillage(@Param("w") w: number, @Param("v") v: number, @Param("r") r: number) {
+        return "/village?w=" + w
+                + "&v=" + v
+                + "&r=" + r
+                + "&nick=GAMEMASTER"
+                + "#" + Math.random().toString(36).substring(7)
+                ;
     }
 }

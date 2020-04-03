@@ -28,8 +28,9 @@
     }
     .pagecontainer {
         position: relative;
+        margin: 1rem;
     }
-    .forms {position: fixed; bottom: 0; width: 100%; max-height: 20vh;}
+    .forms {position: fixed; bottom: .5em; left: .5em; width: 98%; max-height: 20vh;}
     #messages {position: relative; width: 100%; list-style-type: none; margin: 0; padding: 0;}
     #messages li { position: relative; width: 100%;
          padding: 5px 10px;
@@ -43,9 +44,8 @@
 </style>
 <div class="pagecontainer">
     <div id="role"></div>
-        <div id="chats">
-            <ul id="messages"></ul>
-        </div>
+    <div id="chats">
+        <ul id="messages"></ul>
     </div>
     <div class="forms">
         <form id="villagerForm" action="" class="is-primary">
@@ -54,8 +54,8 @@
                     <div class="select is-fullwidth">
                         <select name="cmd" id="mtype">
                             <option value="chat">Chat</option>
-                            <option value="wolf">Send as Werewolf</option>
-                            <option value="dm">Direct Message - WIP</option>
+                            <option value="wolf">Werewolf</option>
+                            <option value="dm">DM - WIP</option>
                             <option value="init">Init game</option>
                             <option value="nick">Change nick</option>
                         </select>
@@ -66,40 +66,44 @@
                     <button type="submit" class="button is-primary">Send</button>
                 </div>
             </div>
-            <!--div class="field is-grouped">
-                <input id="m" class="input" autocomplete="off" /><button class="button is-link">Send</button>
-            </div-->
         </form>
-        <!--form id="werewolfForm" action="" class="is-danger column">
-            <div class="field is-horizontal columns">
-                <input id="mw" class="input column is-four-fifths" autocomplete="off" {{ !wolf ? disabled }} /><button class="button is-danger column">Send</button>
-            </div>
-        </form-->
     </div>
 </div>
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 <script>
     $(function (global) {
-        var socket = io.connect(window.location.hostname + ":" + window.location.port + '/general');
-        var nick = "villager" + new Date().getTime().toString();
+        var url = new URL(window.location.href);
+        var socket = io.connect(window.location.host + '/general');
+        var nick =  url.searchParams.get("nick") || "villager" + new Date().getTime().toString();
         var inProgress = false;
         global.role = "Viewer";
         global.wolf = false;
         global.wolves = undefined;
+        room = window.location.hash.toString();
+
+        console.log(room);
+
+        socket.emit('join room', room);
+
 
         socket.on('connect', function () {
             socket.emit('new connection', nick);
+            if (nick == "GAMEMASTER")
+            {
+                var w = url.searchParams.get("w");
+                var v = url.searchParams.get("v");
+                var r = url.searchParams.get("r");                
+                socket.emit('init game', {
+                    room,
+                    w: w || 2,
+                    v: v || 2,
+                    r: r || 31
+                });
+            }
+               
+            else alert("Only GAMEMASTER has permissions to init games");
         });
-
-        /*$('#werewolfForm').submit(function(e){
-            e.preventDefault();
-            msg = $('#mw').val();
-            if (global.wolf) if (msg != "") wolves.emit('wolf message', { nick, msg });
-            else alert("You are not a Werewolf!");
-            $('#mw').val('');
-            return false;
-        });*/
 
         $('#villagerForm').submit(function(e){
             e.preventDefault();
@@ -108,26 +112,27 @@
             msg = $('#m').val();
             switch (mtype) {
                 case "wolf":
-                    if (global.wolf) wolves.emit('wolf message', { nick, msg });
+                    if (global.wolf) wolves.emit('wolf message', { room, nick, msg });
                     else alert("You are not a Werewolf!");
                     break;
                 case "iden":
                     if (global.role == "GAMEMASTER")
-                        socket.emit('get identities');
+                        socket.emit('get identities', room);
                     else alert("You don't have permissions to get identities!");
                     break;
                 case "role":
                     if (global.role == "Viewer")
-                        socket.emit('request role', nick);
+                        socket.emit('request role', room, nick);
                     else alert("You do have a role!");
                     break;
                 case "abrt":
-                    if (global.role == "GAMEMASTER") socket.emit('abort game');
+                    if (global.role == "GAMEMASTER") socket.emit('abort game', room);
                     else alert("You don't have permissions to abort the game!");
                     break;
                 case "init":
                     if (nick == "GAMEMASTER")
                         socket.emit('init game', {
+                            room,
                             w: msg.split(" ")[0] || 2,
                             v: msg.split(" ")[1] || 2,
                             r: msg.split(" ")[2] || 31
@@ -135,11 +140,11 @@
                     else alert("Only GAMEMASTER has permissions to init games");
                     break;
                 case "nick":
-                    socket.emit('change nick', nick, msg.split(" ")[0]);
+                    socket.emit('change nick', room, nick, msg.split(" ")[0]);
                     nick = msg.split(" ")[0];
                     break;
                 case "chat":
-                    if (msg != "") socket.emit('chat message', { nick, msg });
+                    if (msg != "") socket.emit('chat message', room, nick, msg);
                     else alert("Message is empty!");
                     break;
                 default:
@@ -150,8 +155,8 @@
             $('#mtype').val('chat');
             return false;
         });
-        socket.on('chat message', function(msg) {
-            $('#messages').append($('<li>').text(msg.msg).append($('<span class="tag is-' + (msg.nick == "GAMEMASTER" ? "info" : "dark") + '">').text(msg.nick)));
+        socket.on('chat message', function(nick, msg) {
+            $('#messages').append($('<li>').text(msg).append($('<span class="tag is-' + (nick == "GAMEMASTER" ? "info" : "dark") + '">').text(nick)));
         });
         socket.on('role assignation', function(r) {
             $('#role').append($('<h1>').text(r));
@@ -159,7 +164,7 @@
             $('#messages').append($('<li class="server">').text('Your role is now ' + r + '!'));
             if (r == "Werewolf" || r == "GAMEMASTER") {
                 global.wolf = true;
-                global.wolves = io.connect(window.location.hostname + ":" + window.location.port + '/wolves');
+                global.wolves = io.connect(window.location.host + '/wolves').join(room);
                 global.wolves.on('wolf message', function(msg) {
                     $('#messages').append($('<li class="wolves">').text(msg.msg).append($('<span class="tag is-' + (msg.nick == "GAMEMASTER" ? "info" : "danger") + '">').text(msg.nick)));
                 });
