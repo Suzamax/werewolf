@@ -1,5 +1,7 @@
 {{> partials/header }}
-
+<script>
+    var wolf = false;
+</script>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     #role {
@@ -9,7 +11,7 @@
     }
     span {
         position: absolute;
-        top: 0;
+        margin: .25rem;
         right: 0;
         background: #000;
         color: #eee;
@@ -17,49 +19,72 @@
         border-radius: 2px;
         font-size: .66rem;
     }
-    form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
-    form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
-    form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-    #messages { list-style-type: none; margin: 0; padding: 0; width: 49%;}
+    .forms {position: fixed; bottom: 0; width: 100%;}
+    #messages { list-style-type: none; margin: 0; padding: 0;}
     #messages li { position: relative; padding: 5px 10px; }
     #messages li:nth-child(odd) { background: #eee; }
-    #wolves { background: #fee; list-style-type: none; margin: 0; padding: 0; width: 49%;}
+    #wolves { list-style-type: none; margin: 0; padding: 0;}
     #wolves li { padding: 5px 10px; }
     #wolves li:nth-child(odd) { background: #fdd; }
     .server {
         font-style: italic;
     }
 </style>
-<h1 id="role"></h1>
-<ul id="messages"></ul>
-<ul id="wolves"></ul>
-<form action="">
-    <input id="m" autocomplete="off" /><button>Send</button>
-</form>
+<div id="role"></div>
+<div id="chats" class="columns is-gapless">
+    <ul id="messages" class="column"></ul>
+    <ul id="wolves" class="column is-danger"></ul>
+</div>
+<div class="forms columns">
+    <form id="villagerForm" action="" class="is-primary column">
+        <div class="field is-horizontal columns">
+            <input id="m" class="input column is-four-fifths" autocomplete="off" /><button class="button is-link column">Send</button>
+        </div>
+    </form>
+    <form id="werewolfForm" action="" class="is-danger column">
+        <div class="field is-horizontal columns">
+            <input id="mw" class="input column is-four-fifths" autocomplete="off" {{ !wolf ? disabled }} /><button class="button is-danger column">Send</button>
+        </div>
+    </form>
+</div>
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 <script>
-    $(function () {
-        var socket = io.connect(window.location.hostname + ":" + window.location.port + '/general'),
-            wolves = io.connect(window.location.hostname + ":" + window.location.port + '/wolves');
+    $(function (global) {
+        var socket = io.connect(window.location.hostname + ":" + window.location.port + '/general');
         var nick = "villager" + new Date().getTime().toString();
-        var role = "Viewer";
         var inProgress = false;
         var love = {
             nick: undefined,
             role: undefined
         };
-        var wolf = false;
+        global.role = "Viewer";
+        global.wolf = false;
+        global.wolves = undefined;
 
         socket.on('connect', function () {
             socket.emit('new connection', nick);
         });
 
-        $('form').submit(function(e){
+        $('#werewolfForm').submit(function(e){
+            e.preventDefault();
+            msg = $('#mw').val();
+            if (global.wolf) wolves.emit('wolf message', { nick, msg });
+            else alert("You are not a Werewolf!");
+            $('#mw').val('');
+            return false;
+        });
+
+        $('#villagerForm').submit(function(e){
             e.preventDefault();
             msg = $('#m').val();
             if (msg.startsWith("/"))
                 switch (msg.substr(1,4)) {
+                    case "role":
+                        if (global.role == "Viewer")
+                            socket.emit('request role', nick);
+                        else alert("You do have a role!");
+                        break;
                     case "init":
                         socket.emit('init game', {
                             w: msg.split(" ")[1],
@@ -71,9 +96,6 @@
                         socket.emit('change nick', nick, msg.split(" ")[1]);
                         nick = msg.split(" ")[1];
                         break;
-                    case "wolf":
-                        wolves.emit('access', msg.split(" ")[1]);
-                        break;
                     default:
                         alert("ERROR: Command not found.");
                 }
@@ -82,26 +104,29 @@
             return false;
         });
         socket.on('chat message', function(msg) {
-            $('#messages').append($('<li>').text(msg.msg).append($('<span>').text(msg.nick)));
+            $('#messages').append($('<li>').text(msg.msg).append($('<span class="tag is-' + (msg.nick == "GAMEMASTER" ? "info" : "dark") + '">').text(msg.nick)));
         });
         socket.on('role assignation', function(r) {
-            $('#role').val(r);
+            $('#role').append($('<h1>').text(r));
+            global.role = r;
+            $('#messages').append($('<li class="server">').text('Your role is now ' + r + '!'));
+            if (r == "Werewolf" || r == "GAMEMASTER") {
+                global.wolf = true;
+                global.wolves = io.connect(window.location.hostname + ":" + window.location.port + '/wolves');
+                global.wolves.on('wolf message', function(msg) {
+                    $('#wolves').append($('<li>').text(msg.msg).append($('<span class="tag is-' + (msg.nick == "GAMEMASTER" ? "info" : "danger") + '">').text(msg.nick)));
+                });
+            }
         });
         socket.on('progress', function(progress) {
             inProgress = progress;
         });
         socket.on('gamemaster', function(code) {
-            $('#messages').append($('<li class="server">').text('Send this code to the Werewolves: ' + code));
+            $('#messages').append($('<li class="server">').text('You have created the game!'));
         });
         socket.on('nick changed', function (msg) {
             $('#messages').append($('<li class="server">').text(msg.oldNick + ' is now ' + msg.newNick));
         });
-
-        // Werewolves
-        wolves.on('accept', function() {
-            wolf = true;
-            $('#wolves').append($('<li class="server">').text('You have been accepted as a Werewolf'));
-        });
-    });
+    }(this));
 </script>
 {{> partials/footer }}

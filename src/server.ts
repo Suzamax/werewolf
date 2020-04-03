@@ -9,7 +9,6 @@ import * as http from 'http';
 import * as mustacheExpress from 'mustache-express';
 import * as socketio from 'socket.io';
 import {Socket} from "socket.io";
-import {message} from "gulp-typescript/release/utils";
 
 const PORT = process.env.PORT || 3000;
 const app = createExpressServer({
@@ -42,8 +41,6 @@ const roles = [
 let availableRoles: string[] = [];
 let progress = false;
 
-let secretCodeWolf: number;
-
 const general = io
     .of("/general")
     .on('connection', (socket: Socket) => {
@@ -65,9 +62,7 @@ const general = io
                     availableRoles.push(roles[i]);
             availableRoles = _.shuffle(availableRoles);
 
-            secretCodeWolf = Math.floor(Math.random() * 32768);
-
-            socket.emit('gamemaster', secretCodeWolf);
+            socket.emit('gamemaster');
             socket.emit('role assignation', "GAMEMASTER");
         });
 
@@ -91,16 +86,10 @@ const wolves = io
     .of("/wolves")
     .on('connection', (socket: Socket) => {
         console.log("WOOF! WOOF!");
-        socket.on('access', (code: number) => {
-            if (code == secretCodeWolf) {
-                socket.send('accept');
-                console.log("Awoo~");
-            }
-            else socket.disconnect(true);
-        });
-
-        socket.on('wolf message', (msg) => {
+        socket.on('wolf message', (msg: string) => {
+            // log the received message and send it back to the client
             console.log(msg);
+            wolves.emit('wolf message', msg);
         });
     })
 ;
