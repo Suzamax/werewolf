@@ -47,17 +47,34 @@
             <ul id="messages"></ul>
         </div>
     </div>
-    <div class="forms columns">
-        <form id="villagerForm" action="" class="is-primary column">
-            <div class="field is-horizontal columns">
-                <input id="m" class="input column is-four-fifths" autocomplete="off" /><button class="button is-link column">Send</button>
+    <div class="forms">
+        <form id="villagerForm" action="" class="is-primary">
+            <div class="field has-addons">
+                <div class="control is-expanded">
+                    <div class="select is-fullwidth">
+                        <select name="cmd" id="mtype">
+                            <option value="chat">Chat</option>
+                            <option value="wolf">Send as Werewolf</option>
+                            <option value="dm">Direct Message - WIP</option>
+                            <option value="init">Init game</option>
+                            <option value="nick">Change nick</option>
+                        </select>
+                    </div>
+                </div>
+                <input id="m" class="input" autocomplete="off" />
+                <div class="control">
+                    <button type="submit" class="button is-primary">Send</button>
+                </div>
             </div>
+            <!--div class="field is-grouped">
+                <input id="m" class="input" autocomplete="off" /><button class="button is-link">Send</button>
+            </div-->
         </form>
-        <form id="werewolfForm" action="" class="is-danger column">
+        <!--form id="werewolfForm" action="" class="is-danger column">
             <div class="field is-horizontal columns">
                 <input id="mw" class="input column is-four-fifths" autocomplete="off" {{ !wolf ? disabled }} /><button class="button is-danger column">Send</button>
             </div>
-        </form>
+        </form-->
     </div>
 </div>
 <script src="/socket.io/socket.io.js"></script>
@@ -75,53 +92,62 @@
             socket.emit('new connection', nick);
         });
 
-        $('#werewolfForm').submit(function(e){
+        /*$('#werewolfForm').submit(function(e){
             e.preventDefault();
             msg = $('#mw').val();
             if (global.wolf) if (msg != "") wolves.emit('wolf message', { nick, msg });
             else alert("You are not a Werewolf!");
             $('#mw').val('');
             return false;
-        });
+        });*/
 
         $('#villagerForm').submit(function(e){
             e.preventDefault();
+
+            mtype = $('#mtype').val();
             msg = $('#m').val();
-            if (msg.startsWith("/"))
-                switch (msg.substr(1,4)) {
-                    case "iden":
-                        if (global.role == "GAMEMASTER")
-                            socket.emit('get identities');
-                        else alert("You don't have permissions to get identities!");
-                        break;
-                    case "role":
-                        if (global.role == "Viewer")
-                            socket.emit('request role', nick);
-                        else alert("You do have a role!");
-                        break;
-                    case "abrt":
-                        if (global.role == "GAMEMASTER") socket.emit('abort game');
-                        else alert("You don't have permissions to abort the game!");
-                        break;
-                    case "init":
-                        if (nick == "GAMEMASTER")
-                            socket.emit('init game', {
-                                w: msg.split(" ")[1] || 2,
-                                v: msg.split(" ")[2] || 2,
-                                r: msg.split(" ")[3] || 31
-                            });
-                        else alert("Only GAMEMASTER has permissions to init games");
-                        break;
-                    case "nick":
-                        socket.emit('change nick', nick, msg.split(" ")[1]);
-                        nick = msg.split(" ")[1];
-                        break;
-                    default:
-                        alert("ERROR: Command not found.");
-                }
-            else if (msg != "") socket.emit('chat message', { nick, msg });
-            else alert("Message is empty!");
+            switch (mtype) {
+                case "wolf":
+                    if (global.wolf) wolves.emit('wolf message', { nick, msg });
+                    else alert("You are not a Werewolf!");
+                    break;
+                case "iden":
+                    if (global.role == "GAMEMASTER")
+                        socket.emit('get identities');
+                    else alert("You don't have permissions to get identities!");
+                    break;
+                case "role":
+                    if (global.role == "Viewer")
+                        socket.emit('request role', nick);
+                    else alert("You do have a role!");
+                    break;
+                case "abrt":
+                    if (global.role == "GAMEMASTER") socket.emit('abort game');
+                    else alert("You don't have permissions to abort the game!");
+                    break;
+                case "init":
+                    if (nick == "GAMEMASTER")
+                        socket.emit('init game', {
+                            w: msg.split(" ")[0] || 2,
+                            v: msg.split(" ")[1] || 2,
+                            r: msg.split(" ")[2] || 31
+                        });
+                    else alert("Only GAMEMASTER has permissions to init games");
+                    break;
+                case "nick":
+                    socket.emit('change nick', nick, msg.split(" ")[0]);
+                    nick = msg.split(" ")[0];
+                    break;
+                case "chat":
+                    if (msg != "") socket.emit('chat message', { nick, msg });
+                    else alert("Message is empty!");
+                    break;
+                default:
+                    alert("ERROR: Command not found.");
+            }
+            
             $('#m').val('');
+            $('#mtype').val('chat');
             return false;
         });
         socket.on('chat message', function(msg) {

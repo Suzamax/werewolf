@@ -19,9 +19,12 @@ export class VillageController {
     }
 
     @Get("/townhall")
-    @Render("")
+    @Render("townhall")
     getTownHall() {
-        return undefined;
+        return {
+            title: "Townhall",
+            subtitle: "Create a game"
+        };
     }
 
     @Post("/townhall/create/:w/:v/:r")

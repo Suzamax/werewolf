@@ -1,5 +1,5 @@
 # Werewolf
-## Los hombres lobo de Castronegro, ahora online!
+## El pueblo duerme, ahora online!
 
 ![wolf](./src/assets/img/wolf.png)
 
