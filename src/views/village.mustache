@@ -54,10 +54,6 @@
         var socket = io.connect(window.location.hostname + ":" + window.location.port + '/general');
         var nick = "villager" + new Date().getTime().toString();
         var inProgress = false;
-        var love = {
-            nick: undefined,
-            role: undefined
-        };
         global.role = "Viewer";
         global.wolf = false;
         global.wolves = undefined;
