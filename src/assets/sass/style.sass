@@ -1,6 +1,39 @@
-body
-  padding: 50px
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif
-
 a
   color: #00B7FF
+
+#role
+  text-align: center
+
+span
+  text-align: right
+  width: 100%
+#chats
+  position: relative
+  border-radius: .33em
+  border: 1px solid black
+  height: 60vh
+  padding-bottom: 3.33em
+  h2
+    width: 100%
+    text-align: center
+  form
+    position: absolute
+    width: 90%
+  #messages
+    position: relative
+    overflow-y: auto
+    width: 100%
+    height: calc(100% - 3em) 
+    list-style-type: none
+    li 
+      position: relative
+      width: 100%
+      padding: 1em
+      &:nth-child(odd):not(.wolves)
+        background: #eee
+      &.wolves
+        background: #fee
+        &:nth-child(odd) 
+          background: #fdd
+      &.server
+        font-style: italic

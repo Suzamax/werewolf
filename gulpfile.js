@@ -4,7 +4,7 @@ const sass = require('gulp-sass');
 
 sass.compiler = require('node-sass');
 
-const css = () => src('./src/assets/*.sass')
+const css = () => src('./src/assets/sass/*.sass')
     .pipe(sass().on('error', sass.logError))
     .pipe(dest('./dist/public/css'))
 ;
