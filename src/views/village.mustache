@@ -130,6 +130,7 @@
             $('#role').text(r);
             global.role = r;
             $('#messages').append($('<li class="server">').text('Your role is now ' + r + '!'));
+            $("#messages").animate({ scrollTop: ($("#messages").children('li').length - 1) * 100 }, 100);
             if (r == "Werewolf" || r == "GAMEMASTER") {
                 if (r == "GAMEMASTER") global.nick = "GAMEMASTER";
                 global.wolf = true;
@@ -146,31 +147,31 @@
                                 .text(nick)));
                 });
             }
-            $("#messages").stop().animate({ scrollTop: $("#messages").scrollHeight}, 1000);
+            $("#messages").animate({ scrollTop: ($("#messages").children('li').length - 1) * 100 }, 100);
         });
         socket.on('game aborted', function() {
             $('#messages').append($('<li class="server is-danger">').text('Game aborted! Reload page.'));
-            $("#messages").stop().animate({ scrollTop: $("#messages").scrollHeight}, 1000);
+            $("#messages").animate({ scrollTop: ($("#messages").children('li').length - 1) * 100 }, 100);
         });
         socket.on('no role available', function() {
             $('#messages').append($('<li class="server is-danger">').text('No role available.'));
-            $("#messages").stop().animate({ scrollTop: $("#messages").scrollHeight}, 1000);
+            $("#messages").animate({ scrollTop: ($("#messages").children('li').length - 1) * 100 }, 100);
         });
         socket.on('gamemaster', function(code) {
             $('#messages').append($('<li class="server">').text('You have created the game!'));
-            $("#messages").stop().animate({ scrollTop: $("#messages").scrollHeight}, 1000);
+            $("#messages").animate({ scrollTop: ($("#messages").children('li').length - 1) * 100 }, 100);
         });
         socket.on('nick changed', function (msg) {
             $('#messages').append($('<li class="server">').text(msg.oldNick + ' is now ' + msg.newNick));
-            $("#messages").stop().animate({ scrollTop: $("#messages").scrollHeight}, 1000);
+            $("#messages").animate({ scrollTop: ($("#messages").children('li').length - 1) * 100 }, 100);
         });
         socket.on('get identities', function (msg) {
             $('#messages').append($('<li class="server">').text(msg));
-            $("#messages").stop().animate({ scrollTop: $("#messages").scrollHeight}, 1000);
+            $("#messages").animate({ scrollTop: ($("#messages").children('li').length - 1) * 100 }, 100);
         });
         socket.on('leaving', function (nick) {
             $('#messages').append($('<li class="server">').text(nick + ' left.'));
-            $("#messages").stop().animate({ scrollTop: $("#messages").scrollHeight}, 1000);
+            $("#messages").animate({ scrollTop: ($("#messages").children('li').length - 1) * 100 }, 100);
         })
     }(this));
 </script>
