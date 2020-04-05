@@ -1,5 +1,6 @@
 {{> partials/header }}
 <h1 class="title" id="role">Player</h1>
+<h2 class="subtitle town"></h2>
 <div class="container">
     <div class="columns">
         <div id="dashboard" class="column">
@@ -43,6 +44,8 @@
         room = window.location.hash.toString();
 
         console.log(room);
+
+        $('.town').text('on '+room);
 
         socket.emit('join room', room, global.nick);
 

@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
+    "jsx": "react",
     "rootDir": "./src",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "target": "ES5",
+    "target": "ES6",
     "module": "commonjs",
     "strict": true,
     "sourceMap": true,

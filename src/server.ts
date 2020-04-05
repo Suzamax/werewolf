@@ -2,7 +2,8 @@ import "reflect-metadata"; // this shim is required
 import {createExpressServer} from "routing-controllers";
 import { VillageController } from "./controllers/VillageController";
 
-import * as _ from 'lodash';
+import { Room } from './classes/room';
+
 import * as express from 'express';
 import * as path from 'path';
 import * as http from 'http';
@@ -28,19 +29,12 @@ app
 const httpsrv = http.createServer(app);
 const io = socketio(httpsrv);
 
-const roles = [
-    'Witch',
-    'Thief',
-    'Cupid',
-    'Clairvoyant',
-    'Hunter',
-    'Father of all Werewolves',
-    'Dumb'
-];
 
+
+// Map<room, roleList>
 let availableRoles: Map<string, string[]> = new Map<string, string[]>();
 let assignedRoles: Map<string, Map<string, string> > = new Map();
-let rooms: Map<string, number> = new Map();
+let rooms: Map<room, number> = new Map();
 let playersByRoom: Map<string, Map<string, string> > = new Map();
 
 const general = io
