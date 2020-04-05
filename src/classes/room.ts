@@ -1,8 +1,9 @@
 import * as _ from 'lodash';
 
-type userid = string;
-type userrole = string;
-type usermap = Map<userrole, userid>;
+interface user {
+    nick: string;
+    role: string;
+}
 
 export class Room {
     private roles = [
@@ -22,15 +23,18 @@ export class Room {
         'Albino Werewolf', // 4096 
         'Wolf Dog', // 8192
     ];
-    private users: usermap;
+    
+    private users: Map<string, user>; // string is socket ID
     private rolesAvailable: string[];
+    private progress: boolean;
 
-    constructor(roles: number) {
-        this.users = new Map<userrole, userid>();
+    constructor() {
+        this.users = new Map<string, user>();
         this.rolesAvailable = [];
+        this.progress = false;
     }
 
-    public howManyUsers = () => this.users.size;
+    public howManyMembers = () => this.users.size;
 
     public initRoom(w: number, v: number, r: number) {
         for (let i = 0; i < w; i++) this.rolesAvailable.push("Werewolf");
@@ -39,14 +43,52 @@ export class Room {
             this.rolesAvailable.push(this.roles[i]);
 
         this.rolesAvailable = _.shuffle(this.rolesAvailable);
+        this.progress = true;
     }
 
     public abortGame() {
         this.rolesAvailable = [];
-        this.users = new Map<userrole, userid>();
+        this.users = new Map<string, user>();
+        this.progress = false;
     }
 
-    public getMemberId = (role: string) => this.users.get(role);
+    private getMemberByNick = (nick: string) => {
+        this.users.forEach(key => {
+            if (key.nick === nick) return key;
+        });
+        return undefined;
+    }
+    public setMemberNick = (id: string, nick: string) => this.users.set(id, {
+        nick: nick, 
+        role: this.users.get(id)?.role ?? 'Player' 
+    });
+    public getMemberRole = (id: string) => this.users.get(id)?.role;
+    public setMemberRole = (id: string) => this.users.set(id, {
+        nick: this.users.get(id)?.nick ?? 'villager',
+        role: this.rolesAvailable.pop() ?? 'Player' 
+    });
+    public setGameMaster = (id: string) => this.users.set(id, {
+        nick: this.users.get(id)?.nick ?? 'villager',
+        role: 'gamemaster' 
+    });
+    public deleteMember = (id: string) => this.users.delete(id);
 
-    public setMember = ()
+    public getMembers = () => {
+        let json: {[index: string]: string} = {};
+        this.users.forEach((key) => {  
+            json[key.nick] = key.role
+        });
+        return json;
+    }
+
+    public changeGameMaster = (id: string, nick: string) => {
+        let newgm: string | undefined = this.getMemberByNick(nick);
+        if (!this.progress && newgm != undefined) {
+            this.setMemberRole(id);
+            this.setGameMaster(newgm);
+        }
+    }
+    public isGameMaster = (id: string): boolean =>
+        this.users.get(id)?.role == 'gamemaster';
+    
 }

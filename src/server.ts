@@ -1,15 +1,13 @@
 import "reflect-metadata"; // this shim is required
 import {createExpressServer} from "routing-controllers";
 import { VillageController } from "./controllers/VillageController";
-
-import { Room } from './classes/room';
-
 import * as express from 'express';
 import * as path from 'path';
 import * as http from 'http';
 import * as mustacheExpress from 'mustache-express';
 import * as socketio from 'socket.io';
 import {Socket} from "socket.io";
+import { Room } from './classes/room';
 
 const PORT = process.env.PORT || 3000;
 const app = createExpressServer({
@@ -18,9 +16,13 @@ const app = createExpressServer({
     ]
 });
 
+// This stores a map where string is the name of the room.
+let rooms: Map<string, Room>;
+
 app
-    .engine('mustache', mustacheExpress())
     .use(express.static(path.join(__dirname,'/public')))
+    // Deprecating ASAP in favor of React
+    .engine('mustache', mustacheExpress())
     .set('views', __dirname + '/views')
     .set('view engine', 'mustache')
 ;
@@ -29,87 +31,68 @@ app
 const httpsrv = http.createServer(app);
 const io = socketio(httpsrv);
 
-
-
-// Map<room, roleList>
-let availableRoles: Map<string, string[]> = new Map<string, string[]>();
-let assignedRoles: Map<string, Map<string, string> > = new Map();
-let rooms: Map<room, number> = new Map();
-let playersByRoom: Map<string, Map<string, string> > = new Map();
-
+// General socket
 const general = io
     .of("/general")
     .on('connection', (socket: Socket) => {
         console.log("An user connected!");
 
+        /**
+         * Joins a room. If there's not a room with that name, it will create and store a Room object on rooms Map.
+         */
         socket.on('join room', (room, nick) => {
-            let users = rooms.get(room) ?? 0;
-            rooms.set(room, users++);
-            playersByRoom.get(room)?.set(socket.id.toString(), nick);
             socket.join(room);
-            if (users == 1) {
-                socket.to(room).emit('gamemaster');
+            if (rooms.has(room)) {
+                rooms.get(room)?.setMemberNick(socket.id, nick);
+            }
+            else {
+                rooms.set(room, new Room());
+                rooms.get(room)?.setMemberNick(socket.id, nick);
+                rooms.get(room)?.setGameMaster(socket.id);
                 socket.to(room).emit('role assignation', "GAMEMASTER");
             }
         });
 
-        // connection is up, let's add a simple simple event
-        socket.on('chat message', (room: string, nick:string, msg: string) => {
-            // log the received message and send it back to the client
-            console.log("("+room+") " + nick + ": " + msg);
-            general.to(room).emit('chat message', nick, msg);
-        });
+        /**
+         * Gets a chat message from whatever room and broadcasts it on the same room.
+         */
+        socket.on('chat message', (room: string, nick:string, msg: string) => //{
+            general.to(room).emit('chat message', nick, msg) //;
+            //console.log("("+room+") " + nick + ": " + msg);}
+        );
 
-
-        socket.on('init game', obj => {
-            availableRoles.set(obj.room, []);
-            for (let i = 0; i < obj.w; i++) availableRoles.get(obj.room)?.push("Werewolf");
-            for (let i = 0; i < obj.v; i++) availableRoles.get(obj.room)?.push("Villager");
-            for (let i = 1; i < 7; i++)
-                if (((obj.r >> i) % 2) === 1)
-                    availableRoles.get(obj.room)?.push(roles[i]);
-            availableRoles.set(obj.room, _.shuffle(availableRoles.get(obj.room)));
-
-            console.log(availableRoles.get(obj.room));
-
-            socket.to(obj.room).emit('gamemaster');
-            socket.to(obj.room).emit('role assignation', "GAMEMASTER");
+        /**
+         * This action is only executed by the game master
+         */
+        socket.on('init game', (room, w, v, r) => {
+            rooms.get(room)?.initRoom(w,v,r);
+            socket.to(room).emit('init game');
         });
 
         socket.on('abort game', (room) => {
-            availableRoles.set(room, []);
-            console.log("Game aborted");
+            rooms.get(room)?.abortGame();
+            //console.log("Game aborted");
             general.to(room).emit('game aborted');
-            assignedRoles.set(room, new Map());
         });
 
         socket.on('change nick', (room, oldNick: string, newNick: string) => {
-           console.log('%s is now %s', oldNick, newNick);
-           playersByRoom.get(room)?.set(socket.id, newNick);
+           //console.log('%s is now %s', oldNick, newNick);
+           rooms.get(room)?.setMemberNick(socket.id, newNick);
            general.to(room).emit('nick changed', {oldNick, newNick});
         });
 
-        socket.on('request role', (room, nick: string) => {
-            console.log('%s requests a role!', nick);
-            const r = availableRoles.get(room)?.pop();
-            if(r != undefined) {
-                console.log("Assigning role %s to %s", r, nick);
-                assignedRoles.get(room)?.set(nick, r || 'Viewer');
-                socket.to(room).emit('role assignation', r);
-            } else socket.to(room).emit('no role available');
+        socket.on('request role', (room: string, nick: string) => {
+            // console.log('%s requests a role!', nick);
+            rooms.get(room)?.setMemberRole(socket.id);
+            // console.log("Assigning role %s to %s", r, nick);
+            socket.to(room).emit('role assignation', rooms.get(room)?.getMemberRole(socket.id));
         });
 
-        socket.on('get identities', (room) => {
-            let str: string = "";
-            assignedRoles.get(room)?.forEach((value: string, key: string) => {
-                str += key + ": " + value + ", ";
-            });
-            socket.to(room).emit('get identities', str);
-        });
+        socket.on('get identities', (room) =>
+            socket.to(room).emit('get identities', rooms.get(room)?.getMembers()));
 
         socket.on('disconnection', (room, nick) => {
-            let users = rooms.get(room) ?? 0;
-            rooms.set(room, users--);
+            rooms.get(room)?.deleteMember(socket.id)
             socket.to(room).emit('leaving', nick);
         });
 
@@ -117,6 +100,7 @@ const general = io
         socket.send('Hi there, I am a WebSocket server');
     });
 
+// Werewolves socket
 const wolves = io
     .of("/wolves")
     .on('connection', (socket: Socket) => {
@@ -130,4 +114,6 @@ const wolves = io
         });
     })
 ;
+
+// Init the server
 httpsrv.listen(PORT, () => console.log(`Listening on ${PORT}`));
