@@ -3,6 +3,7 @@ import { Redirect } from 'react-router-dom';
 import TextField from "@material-ui/core/TextField";
 import IconButton from "@material-ui/core/IconButton";
 import SendIcon from "@material-ui/icons/Send";
+import Grid from '@material-ui/core/Grid';
 
 type FormRoomState = {
     room: string;
@@ -17,11 +18,7 @@ export class FormRoom extends React.Component<{}, FormRoomState> {
             redirect: false
         };
     }
-    handleInputChange(e: {
-        target: {
-            value: any;
-        };
-    }) {
+    handleInputChange(e: { target: { value: any; }; }) {
         console.log(e.target.value);
         this.setState({ room: e.target.value });
     }
@@ -32,10 +29,21 @@ export class FormRoom extends React.Component<{}, FormRoomState> {
         }
         return (
             <div>
-                <TextField onChange={this.handleInputChange.bind(this)} id="room-name" label="Or enter a custom room" defaultValue={this.state.room} />
-                <IconButton color="primary" aria-label="enter">
-                    <SendIcon onClick={this.handleOnClick} />
-                </IconButton>
+                <Grid container spacing={2}>
+                    <Grid item xs={10} sm={9} md={9} lg={4}>
+                        <TextField fullWidth variant="outlined"
+                            onChange={this.handleInputChange.bind(this)} 
+                            id="room-name" 
+                            label="Room name must be all together"
+                            defaultValue={this.state.room}
+                        />
+                    </Grid>
+                    <Grid item xs={2} sm={1} md={1} lg={1}>
+                        <IconButton color="primary" aria-label="enter">
+                            <SendIcon onClick={this.handleOnClick} />
+                        </IconButton>
+                    </Grid>
+                </Grid>
             </div>
         );
     }

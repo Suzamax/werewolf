@@ -1,30 +1,37 @@
 import * as React from 'react';
 import * as io from "socket.io-client";
-import TableBody from '@material-ui/core/TableBody';
-import TableCell from '@material-ui/core/TableCell';
-import TableRow from '@material-ui/core/TableRow';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemIcon from '@material-ui/core/ListItemIcon';
+import ListItemText from '@material-ui/core/ListItemText';
+import ListSubheader from '@material-ui/core/ListSubheader';
+import PlayArrowIcon from '@material-ui/icons/PlayArrow';
+import { Redirect, Link } from 'react-router-dom';
 
-type RoomListProps = {
+type RoomListState = {
     endpoint: string;
     rooms: Map<string, number>;
     rows: {
         name: string;
         players: number;
     }[];
+    redirect: boolean;
+    roomToGo: string;
 };
 
 function createData(name: string, players: number) {
     return { name, players };
 }
 
-export class RoomList extends React.Component<{}, RoomListProps> {
+export class RoomList extends React.Component<{}, RoomListState> {
     getRoomInterval: NodeJS.Timeout | undefined;
     constructor(props: Readonly<{}>) {
         super(props);
         this.state = {
             endpoint: window.location.host + '/general',
             rooms: new Map<string, number>(),
-            rows: []
+            rows: [],
+            redirect: false,
+            roomToGo: 'Default'
         };
         this.getRoomInterval = undefined;
     }
@@ -46,7 +53,7 @@ export class RoomList extends React.Component<{}, RoomListProps> {
         });
     }
 
-
+    goToRoom = (name: string) => this.setState({ roomToGo: name });
 
     componentDidMount = () => {
         console.log("Mounted");
@@ -58,18 +65,24 @@ export class RoomList extends React.Component<{}, RoomListProps> {
     }
 
     render() {
+        if (this.state.redirect) {
+            return <Redirect push to={"/village/" + this.state.roomToGo} />;
+        }
 
         return (
-            <TableBody>
+            <div>
+                <ListSubheader inset>Current rooms</ListSubheader>
                 {this.state.rows.map((row) => (
-                    <TableRow key={row.name}>
-                        <TableCell component="th" scope="row">
-                            {row.name}
-                        </TableCell>
-                        <TableCell align="right">{row.players}</TableCell>
-                    </TableRow>
+                    <Link to={"/village/" + row.name} >
+                    <ListItem button>
+                        <ListItemIcon>
+                            <PlayArrowIcon />
+                        </ListItemIcon>
+                        <ListItemText primary={row.name + " (" + row.players + ")"} />
+                    </ListItem>
+                    </Link>
                 ))}
-            </TableBody>
+            </div>
         );
     }
 }

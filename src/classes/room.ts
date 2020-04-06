@@ -24,7 +24,7 @@ export class Room {
         'Wolf Dog', // 8192
     ];
     
-    private users: Map<string, user>; // string is socket ID
+    private users: Map<string, user>; // string is Socket ID
     private rolesAvailable: string[];
     private progress: boolean;
 
@@ -67,16 +67,14 @@ export class Room {
     public getMemberRole = (id: string) => this.users.get(id)?.role;
 
     public setMemberRole = (id: string) => this.users.set(id, {
-        nick: this.users.get(id)?.nick ?? 'villager',
-        role: this.rolesAvailable.pop() ?? 'Player' 
+        nick: this.users.get(id)?.nick ?? 'villager' + new Date().getTime().toString(),
+        role: this.rolesAvailable.pop() ?? 'Player'
     });
 
     public setGameMaster = (id: string) => this.users.set(id, {
-        nick: this.users.get(id)?.nick ?? 'villager',
-        role: 'gamemaster' 
+        nick: this.users.get(id)?.nick ?? 'villager' + new Date().getTime().toString(),
+        role: 'Game Master' 
     });
-
-    public deleteMember = (id: string) => this.users.delete(id);
 
     public getMembers = (): object => {
         let json: {[index: string]: string} = {};
@@ -95,7 +93,7 @@ export class Room {
     }
 
     public isGameMaster = (id: string): boolean =>
-        this.users.get(id)?.role == 'gamemaster';
+        this.users.get(id)?.role == 'Game Master';
 
     public getProgress = (): boolean => this.progress;
 }

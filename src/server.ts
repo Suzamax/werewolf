@@ -37,9 +37,13 @@ const general = io
     .on('connection', (socket: Socket) => {
         //console.log("An user connected!");
 
+        setTimeout(() => socket.disconnect(true), 5000);
+
         socket.on('get rooms', () => {
             let obj: {name: string, players: number}[] = [];
             rooms.forEach((value, key) => {
+                if (value.howManyMembers() == 0) 
+                    rooms.delete(key);
                 obj.push({
                     name: key,
                     players: value.howManyMembers()
@@ -60,32 +64,30 @@ const general = io
                 rooms.set(room, new Room());
                 rooms.get(room)?.setMemberNick(socket.id, nick);
                 rooms.get(room)?.setGameMaster(socket.id);
-                socket.to(room).emit('role assignation', "GAMEMASTER");
+                socket.to(room).emit('role assignation', "Game Master");
             }
         });
 
         /**
          * Gets a chat message from whatever room and broadcasts it on the same room.
          */
-        socket.on('chat message', (room: string, nick:string, msg: string) => //{
-            general.to(room).emit('chat message', nick, msg) //;
+        socket.on('chat message', (room: string, nick:string, msg: string) => {
+            general.to(room).emit('chat message', nick, msg);}
             //console.log("("+room+") " + nick + ": " + msg);}
-
         );
 
         /**
          * This action is only executed by the game master
          */
         socket.on('init game', (room, w, v, r) => {
-            if (rooms.get(room)?.getMemberRole(socket.id) == "gamemaster" && !rooms.get(room)?.getProgress()) {
+            if (rooms.get(room)?.getMemberRole(socket.id) == "Game Master" && !rooms.get(room)?.getProgress()) {
                 rooms.get(room)?.initRoom(w,v,r);
                 socket.to(room).emit('init game');
             } else socket.to(room).emit('no privileges');
         });
-
         
         socket.on('abort game', (room) => {
-            if (rooms.get(room)?.getMemberRole(socket.id) == "gamemaster" && rooms.get(room)?.getProgress()) {
+            if (rooms.get(room)?.getMemberRole(socket.id) == "Game Master" && rooms.get(room)?.getProgress()) {
                 rooms.get(room)?.abortGame();
                 general.to(room).emit('game aborted');
             } else socket.to(room).emit('no privileges');
@@ -94,7 +96,7 @@ const general = io
         socket.on('change nick', (room, oldNick: string, newNick: string) => {
            //console.log('%s is now %s', oldNick, newNick);
            rooms.get(room)?.setMemberNick(socket.id, newNick);
-           general.to(room).emit('nick changed', {oldNick, newNick});
+           general.to(room).emit('nick changed', oldNick, newNick);
         });
 
         socket.on('request role', (room: string, nick: string) => {
@@ -106,12 +108,6 @@ const general = io
 
         socket.on('get identities', (room) =>
             socket.to(room).emit('get identities', rooms.get(room)?.getMembers()));
-
-        socket.on('disconnection', (room, nick) => {
-            if (rooms.get(room) != undefined)
-                rooms.get(room)?.deleteMember(socket.id)
-            socket.to(room).emit('leaving', nick);
-        });
 
         // send immediatly a feedback to the incoming connection
         socket.send('Hi there, I am a WebSocket server');
