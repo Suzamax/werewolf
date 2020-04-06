@@ -18,6 +18,7 @@ function createData(name: string, players: number) {
 }
 
 export class RoomList extends React.Component<{}, RoomListProps> {
+    getRoomInterval: NodeJS.Timeout | undefined;
     constructor(props: Readonly<{}>) {
         super(props);
         this.state = {
@@ -25,24 +26,19 @@ export class RoomList extends React.Component<{}, RoomListProps> {
             rooms: new Map<string, number>(),
             rows: []
         };
+        this.getRoomInterval = undefined;
     }
+    
     getRooms() {
         const socket = io.connect(this.state.endpoint);
         console.log("Getting rooms...");
         socket.emit('get rooms');
-        socket.on('get rooms', (r: {
-            name: string;
-            players: number;
-        }[]) => {
+        socket.on('get rooms', (r: { name: string; players: number; }[]) => {
             let rm = new Map();
-            r.forEach((obj: {
-                name: string;
-                players: number;
-            }) => rm.set(obj.name, obj.players));
-            let rw: {
-                name: string;
-                players: number;
-            }[] = [];
+            r.forEach((obj: { name: string; players: number; }) =>
+                rm.set(obj.name, obj.players)
+            );
+            let rw: { name: string; players: number; }[] = [];
             rm.forEach((value, key) => rw.push(createData(key, value)));
             this.setState({
                 rows: rw
@@ -54,8 +50,13 @@ export class RoomList extends React.Component<{}, RoomListProps> {
 
     componentDidMount = () => {
         console.log("Mounted");
-        setInterval(() => this.getRooms(), 10000);
+        this.getRoomInterval = setInterval(() => this.getRooms(), 1000);
     };
+
+    componentWillUnmount = () => {
+        if (this.getRoomInterval) clearInterval(this.getRoomInterval);
+    }
+
     render() {
 
         return (
