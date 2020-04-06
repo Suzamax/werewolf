@@ -1,3 +1,5 @@
+// Deprecating soon in favor of React-Router
+
 import {Controller, Param, Get, Redirect, Render} from "routing-controllers";
 
 @Controller()

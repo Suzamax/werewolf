@@ -1,40 +1,5 @@
 {{> partials/header }}
 
-
 <div id="react"></div>
 
-
-<section class="section">
-    <div class="container">
-        <h1 class="title">
-            {{ title }}
-        </h1>
-        <p class="subtitle">
-            {{ subtitle }}
-        </p>
-    </div>
-</section>
-<section class="section">
-    <div class="container">
-        <form id="villagerForm" action="" class="is-primary">
-            <div class="field has-addons has-addons-centered">
-                <input id="room" class="input" autocomplete="off" />
-                <div class="control">
-                    <button type="submit" class="button is-primary">Enter room</button>
-                </div>
-            </div>
-        </form>
-    </div>
-</section>
-<!-- TODO: Add a socket to see available rooms
-<script src="/socket.io/socket.io.js"></script>
--->
-<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-<script>
-    $(function (global) {
-        $('form').submit(function(e){
-            window.location.replace(window.location.host + "/village#" + $('#room').val());
-        });
-    });
-</script>
 {{> partials/footer }}

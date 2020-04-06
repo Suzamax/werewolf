@@ -92,6 +92,8 @@
                     if (global.role == "GAMEMASTER") socket.emit('abort game', room);
                     else alert("You don't have permissions to abort the game!");
                     break;
+
+                */
                 case "init":
                     if (nick == "GAMEMASTER")
                         socket.emit('init game', {
@@ -102,7 +104,6 @@
                         });
                     else alert("Only GAMEMASTER has permissions to init games");
                     break;
-                */
                 case "nick":
                     socket.emit('change nick', room, n, msg.split(" ")[0]);
                     global.nick = msg.split(" ")[0];

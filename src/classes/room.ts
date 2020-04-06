@@ -58,22 +58,27 @@ export class Room {
         });
         return undefined;
     }
+
     public setMemberNick = (id: string, nick: string) => this.users.set(id, {
         nick: nick, 
         role: this.users.get(id)?.role ?? 'Player' 
     });
+
     public getMemberRole = (id: string) => this.users.get(id)?.role;
+
     public setMemberRole = (id: string) => this.users.set(id, {
         nick: this.users.get(id)?.nick ?? 'villager',
         role: this.rolesAvailable.pop() ?? 'Player' 
     });
+
     public setGameMaster = (id: string) => this.users.set(id, {
         nick: this.users.get(id)?.nick ?? 'villager',
         role: 'gamemaster' 
     });
+
     public deleteMember = (id: string) => this.users.delete(id);
 
-    public getMembers = () => {
+    public getMembers = (): object => {
         let json: {[index: string]: string} = {};
         this.users.forEach((key) => {  
             json[key.nick] = key.role
@@ -88,7 +93,9 @@ export class Room {
             this.setGameMaster(newgm);
         }
     }
+
     public isGameMaster = (id: string): boolean =>
         this.users.get(id)?.role == 'gamemaster';
-    
+
+    public getProgress = (): boolean => this.progress;
 }

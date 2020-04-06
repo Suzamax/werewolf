@@ -6,7 +6,7 @@ import * as path from 'path';
 import * as http from 'http';
 import * as mustacheExpress from 'mustache-express';
 import * as socketio from 'socket.io';
-import {Socket} from "socket.io";
+import { Socket } from "socket.io";
 import { Room } from './classes/room';
 
 const PORT = process.env.PORT || 3000;
@@ -17,7 +17,7 @@ const app = createExpressServer({
 });
 
 // This stores a map where string is the name of the room.
-let rooms: Map<string, Room>;
+let rooms: Map<string, Room> = new Map();
 
 app
     .use(express.static(path.join(__dirname,'/public')))
@@ -35,7 +35,18 @@ const io = socketio(httpsrv);
 const general = io
     .of("/general")
     .on('connection', (socket: Socket) => {
-        console.log("An user connected!");
+        //console.log("An user connected!");
+
+        socket.on('get rooms', () => {
+            let obj: {name: string, players: number}[] = [];
+            rooms.forEach((value, key) => {
+                obj.push({
+                    name: key,
+                    players: value.howManyMembers()
+                });
+            });
+            socket.emit('get rooms', obj);
+        });
 
         /**
          * Joins a room. If there's not a room with that name, it will create and store a Room object on rooms Map.
@@ -59,20 +70,25 @@ const general = io
         socket.on('chat message', (room: string, nick:string, msg: string) => //{
             general.to(room).emit('chat message', nick, msg) //;
             //console.log("("+room+") " + nick + ": " + msg);}
+
         );
 
         /**
          * This action is only executed by the game master
          */
         socket.on('init game', (room, w, v, r) => {
-            rooms.get(room)?.initRoom(w,v,r);
-            socket.to(room).emit('init game');
+            if (rooms.get(room)?.getMemberRole(socket.id) == "gamemaster" && !rooms.get(room)?.getProgress()) {
+                rooms.get(room)?.initRoom(w,v,r);
+                socket.to(room).emit('init game');
+            } else socket.to(room).emit('no privileges');
         });
 
+        
         socket.on('abort game', (room) => {
-            rooms.get(room)?.abortGame();
-            //console.log("Game aborted");
-            general.to(room).emit('game aborted');
+            if (rooms.get(room)?.getMemberRole(socket.id) == "gamemaster" && rooms.get(room)?.getProgress()) {
+                rooms.get(room)?.abortGame();
+                general.to(room).emit('game aborted');
+            } else socket.to(room).emit('no privileges');
         });
 
         socket.on('change nick', (room, oldNick: string, newNick: string) => {
@@ -92,26 +108,28 @@ const general = io
             socket.to(room).emit('get identities', rooms.get(room)?.getMembers()));
 
         socket.on('disconnection', (room, nick) => {
-            rooms.get(room)?.deleteMember(socket.id)
+            if (rooms.get(room) != undefined)
+                rooms.get(room)?.deleteMember(socket.id)
             socket.to(room).emit('leaving', nick);
         });
 
         // send immediatly a feedback to the incoming connection
         socket.send('Hi there, I am a WebSocket server');
-    });
+    })
+;
 
 // Werewolves socket
 const wolves = io
     .of("/wolves")
     .on('connection', (socket: Socket) => {
         socket.on('join wolves', room => socket.join(room));
-        console.log("WOOF! WOOF!");
+        //console.log("WOOF! WOOF!");
 
-        socket.on('wolf message', (room: string, nick:string, msg: string) => {
+        socket.on('wolf message', (room: string, nick:string, msg: string) => // {
             // log the received message and send it back to the client
-            console.log("("+room+") " + nick + ": " + msg);
-            wolves.to(room).emit('wolf message', nick, msg);
-        });
+            //console.log("("+room+") " + nick + ": " + msg);
+            wolves.to(room).emit('wolf message', nick, msg));
+        //});
     })
 ;
 
