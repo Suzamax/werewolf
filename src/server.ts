@@ -42,12 +42,11 @@ const general = io
         socket.on('get rooms', () => {
             let obj: {name: string, players: number}[] = [];
             rooms.forEach((value, key) => {
-                if (value.howManyMembers() == 0) 
-                    rooms.delete(key);
-                obj.push({
-                    name: key,
-                    players: value.howManyMembers()
-                });
+                if (value.getProgress())
+                    obj.push({
+                        name: key,
+                        players: value.howManyMembers()
+                    });
             });
             socket.emit('get rooms', obj);
         });
@@ -66,6 +65,8 @@ const general = io
                 rooms.get(room)?.setGameMaster(socket.id);
                 socket.to(room).emit('role assignation', "Game Master");
             }
+            socket.to(room).emit('welcome message', nick);
+            console.log('welcome,' + nick);
         });
 
         /**

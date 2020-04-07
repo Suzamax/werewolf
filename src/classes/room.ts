@@ -61,14 +61,14 @@ export class Room {
 
     public setMemberNick = (id: string, nick: string) => this.users.set(id, {
         nick: nick, 
-        role: this.users.get(id)?.role ?? 'Player' 
+        role: this.users.get(id)?.role ?? 'Viewer' 
     });
 
     public getMemberRole = (id: string) => this.users.get(id)?.role;
 
     public setMemberRole = (id: string) => this.users.set(id, {
         nick: this.users.get(id)?.nick ?? 'villager' + new Date().getTime().toString(),
-        role: this.rolesAvailable.pop() ?? 'Player'
+        role: this.rolesAvailable.pop() ?? 'Viewer'
     });
 
     public setGameMaster = (id: string) => this.users.set(id, {
