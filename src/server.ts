@@ -39,6 +39,10 @@ const general = io
 
         setTimeout(() => socket.disconnect(true), 5000);
 
+        socket.on('new connection', (nick: string, room: string) => {
+            console.log(nick + " joined " + room);
+        });
+
         socket.on('get rooms', () => {
             let obj: {name: string, players: number}[] = [];
             rooms.forEach((value, key) => {
@@ -56,10 +60,8 @@ const general = io
          */
         socket.on('join room', (room, nick) => {
             socket.join(room);
-            if (rooms.has(room)) {
-                rooms.get(room)?.setMemberNick(socket.id, nick);
-            }
-            else {
+            rooms.get(room)?.setMemberNick(socket.id, nick);
+            if (!rooms.has(room)) {
                 rooms.set(room, new Room());
                 rooms.get(room)?.setMemberNick(socket.id, nick);
                 rooms.get(room)?.setGameMaster(socket.id);

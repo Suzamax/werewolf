@@ -23,7 +23,7 @@
             "preLaunchTask": "npm: build",
             "program": "${workspaceFolder}\\dist\\server.js",
             "outFiles": [
-                "${workspaceFolder}/**/*.js"
+                "${workspaceFolder}/dist/**/*.js"
             ]
         }
     ]

@@ -14,7 +14,8 @@
     "lib": ["es6", "dom"],
     "noImplicitAny": true,
     "noImplicitThis": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "outDir": "./dist"
   },
   "exclude": [
     "dist",

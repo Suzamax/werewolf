@@ -7,10 +7,18 @@ import List from "@material-ui/core/List";
 import ListItem from "@material-ui/core/ListItem";
 import ListItemAvatar from "@material-ui/core/ListItemAvatar";
 import Avatar from "@material-ui/core/Avatar";
+import { makeStyles, Theme, createStyles } from '@material-ui/core/styles';
+import InputBase from '@material-ui/core/InputBase';
+import Divider from '@material-ui/core/Divider';
+import IconButton from '@material-ui/core/IconButton';
+import MenuIcon from '@material-ui/icons/Menu';
+import SendIcon from '@material-ui/icons/Send';
+import DirectionsIcon from '@material-ui/icons/Directions';
 import ListItemText from "@material-ui/core/ListItemText";
 import Grid from "@material-ui/core/Grid";
 
 type message = {
+    id: number,
     msg: string,
     server: boolean,
     nick: string | undefined,
@@ -18,111 +26,37 @@ type message = {
 }
 
 type VillageState = {
-    //generalSocket: SocketIOClient.Socket,
+    //socket: SocketIOClient.Socket,
     //wolvesSocket: SocketIOClient.Socket | undefined,
     role: string,
-    room_ready: boolean,
     nick: string,
     room: string,
     wolf: boolean,
+    joinedRoom: boolean,
+    connected: boolean,
     messages: message[],
-    msg: string
+    msg: string,
+    msgcounter: number
 }
 
 export default class Village extends React.Component<{}, VillageState> {
-    getGeneralMessagesInterval: NodeJS.Timeout | undefined;
 
-    generalSocket: SocketIOClient.Socket | undefined;
-    wolvesSocket: SocketIOClient.Socket | undefined;
 
     constructor(props: Readonly<{}>) {
         super(props);
         this.state = {
-            //generalSocket: io.connect(window.location.host + '/general'),
+            //socket: io.connect(window.location.host + '/general'),
             //wolvesSocket: undefined,
             room: window.location.hash,
-            room_ready: false,
             nick: "villager" + new Date().getTime().toString(),
             role: 'Viewer',
             wolf: false,
+            joinedRoom: false,
+            connected: false,
             messages: [],
-            msg: ''
-        };
-        this.getGeneralMessagesInterval = undefined;
-    }
-
-    roomListener() {
-
-        this.setState({
-            room_ready: true
-        });
-
-        var self = this;
-
-        console.log('connecting...');
-
-        this.generalSocket = io('ws://' + window.location.host + '/general');
-
-        this.generalSocket.emit('join room', this.state.room, this.state.nick);
-
-        this.generalSocket.on('connect', function() { 
-            console.log('connected!');
-            self.generalSocket?.emit('new connection', self.state.nick);
-        }.bind(this));
-
-        this.generalSocket.on('welcome message', function(nick: string) {
-            self.state.messages.push({ msg: 'Welcome, ' + nick, wolf: false, server: true, nick: undefined });
-            console.log("ey listen!");
-        }.bind(this));
-
-        this.generalSocket.on('chat message', function(nick: string, msg: string) {
-            self.state.messages.push({ msg: msg, wolf: false, server: false, nick: nick });
-            console.log("ey listen!");
-        }.bind(this));
-
-        this.generalSocket.on('role assignation', function(r: string) {
-            self.setState({
-                role: r,
-                wolf: r == 'Werewolf'
-            });
-            self.state.messages.push({ msg: 'Your role is now ' + r + '!', server: true, wolf: false, nick: undefined });
-
-            if (r == "Werewolf" || r == "Game Master") {
-
-                self.wolvesSocket = io('ws://' + window.location.host + '/wolves')
-                
-                self.wolvesSocket?.on('connect', () =>
-                    self.wolvesSocket?.emit('join wolves', self.state.room));
-                self.wolvesSocket?.on('wolf message', (nick: string, msg: string) => {
-                    self.state.messages.push({ msg: msg, wolf: true, server: false, nick: nick })
-                });
-            }
-        }.bind(this));
-
-        this.generalSocket.on('game aborted', function() { 
-            self.state.messages.push({ msg: 'Game aborted! Reload page.', server: true, wolf: false, nick: undefined });
-        }.bind(this));
-
-        this.generalSocket.on('no role available', function() {
-            self.state.messages.push({ msg: 'No role available.', server: true, wolf: false, nick: undefined });
-        }.bind(this));
-
-        this.generalSocket.on('gamemaster', function() {
-            self.state.messages.push({ msg: 'You have created the game!', server: true, wolf: false, nick: undefined });
-        }.bind(this));
-
-        this.generalSocket.on('nick changed', function(oldNick: string, newNick: string) {
-            self.state.messages.push({ msg: oldNick + ' is now ' + newNick, server: true, wolf: false, nick: undefined });
-        }.bind(this));
-
-        // TODO Poll the server outside this function 
-        //this.state.generalSocket.on('get identities', (msg) =>
-        // TODO Call pollIdentities
-        
-        this.generalSocket.on('leaving', function(nick: string) {
-            self.state.messages.push({ msg: nick + ' left.', server: true, wolf: false, nick: undefined });
-        }.bind(this));
-
+            msg: '',
+            msgcounter: 0
+        };       
     }
 
     pollIdentities = () => {
@@ -138,23 +72,112 @@ export default class Village extends React.Component<{}, VillageState> {
             nick: "villager" + new Date().getTime().toString(),
             role: 'Player'
         });
-        this.setupBeforeUnloadListener();
-        this.roomListener();
-
-        //this.getGeneralMessagesInterval = setInterval(() => this.roomListener(), 100);
     }
 
-    setupBeforeUnloadListener = () => {
-        window.addEventListener("beforeunload", (ev) => {
-            ev.preventDefault();
-            this.generalSocket?.emit('disconnection', this.state.room, this.state.nick);
+    updateMessagesStateHandler(msg: message) {
+        this.setState({
+            messages: [...this.state.messages, msg],
+            msgcounter: this.state.msgcounter + 1
         });
-    };
+    }
 
-            
+    onChangeMessage = (e: React.ChangeEvent<HTMLInputElement>) => {
+        e.preventDefault();
+        // parent class change handler is always called with field name and value
+        this.setState({ msg: e.target.value});
+        console.log(this.state.msg);
+    }
 
+    onSubmitMessage = (socket: SocketIOClient.Socket) => (e: React.FormEvent) => {
+        e.preventDefault();
+        socket.emit('chat message', this.state.room, this.state.nick, this.state.msg);
+        this.setState({msg: ''})
+    }
+   
     // TODO Add Dashboard, improve chat
     render() {
+        
+        const { room, nick } = this.state;
+
+        const socket = io.connect(window.location.host + '/general');
+        let wolves: SocketIOClient.Socket | undefined = undefined;
+
+        console.log('connecting...');
+
+        if (!this.state.joinedRoom) {
+            socket.emit('join room', room, nick);
+        }
+
+        if (!this.state.connected)
+        socket.on('connect', () => { 
+            console.log('connected!');
+            socket.emit('new connection', nick, room);
+            this.setState({
+                joinedRoom: true,
+                connected: true
+            });
+        });
+
+        socket.on('welcome message', (nick: string) => {
+            this.updateMessagesStateHandler({id: this.state.msgcounter + 1, msg: 'Welcome, ' + nick, wolf: false, server: true, nick: undefined })
+            console.log("ey listen!");
+        });
+
+        socket.on('chat message', (nick: string, msg: string) => {
+            this.updateMessagesStateHandler({ id: this.state.msgcounter + 1, msg: msg, wolf: false, server: false, nick: nick });
+            console.log("ey listen!");
+        });
+
+        socket.on('role assignation', (r: string) => {
+            this.setState({
+                role: r,
+                wolf: r == 'Werewolf'
+            });
+            this.updateMessagesStateHandler({ id: this.state.msgcounter + 1, msg: 'Your role is now ' + r + '!', server: true, wolf: false, nick: undefined });
+
+            if (r == "Werewolf" || r == "Game Master") {
+
+                wolves = io('ws://' + window.location.host + '/wolves')
+                
+                wolves.on('connect', () =>
+                    wolves?.emit('join wolves', this.state.room));
+                wolves.on('wolf message', (nick: string, msg: string) => {
+                    this.updateMessagesStateHandler({id: this.state.msgcounter + 1, msg: msg, wolf: true, server: false, nick: nick })
+                });
+            }
+        });
+
+        /*
+        socket.on('game aborted', function() { 
+            self.state.messages.push({ msg: 'Game aborted! Reload page.', server: true, wolf: false, nick: undefined });
+        });
+
+        socket.on('no role available', function() {
+            self.state.messages.push({ msg: 'No role available.', server: true, wolf: false, nick: undefined });
+        });
+
+        socket.on('gamemaster', function() {
+            self.state.messages.push({ msg: 'You have created the game!', server: true, wolf: false, nick: undefined });
+        });
+
+        socket.on('nick changed', function(oldNick: string, newNick: string) {
+            self.state.messages.push({ msg: oldNick + ' is now ' + newNick, server: true, wolf: false, nick: undefined });
+        });
+
+        // TODO Poll the server outside this function 
+        //this.state.generalsocket.on('get identities', (msg) =>
+        // TODO Call pollIdentities
+        
+        socket.on('leaving', function(nick: string) {
+            self.state.messages.push({ msg: nick + ' left.', server: true, wolf: false, nick: undefined });
+        });
+
+
+
+
+        */
+
+
         return (       
             <main>
                 <Container>
@@ -168,19 +191,36 @@ export default class Village extends React.Component<{}, VillageState> {
                             </Typography>
                         </Grid>
                         <Grid item xs={12} md={4}>
-                            <Paper square>
+                            <Paper>
                                 <Typography variant="h5" gutterBottom>
                                 Chat and server logs
                                 </Typography>
                                 <List>
-                                {this.state.messages.map(({ msg, server, nick, wolf }) => (
-                                    <React.Fragment>
+                                {this.state.messages.map(({ id, msg, server, nick, wolf }) => (
+                                    <React.Fragment key={id}>
                                     <ListItem button>
                                         <ListItemText color={server ? 'primary' : wolf ? 'error' : 'initial'} primary={nick ?? 'server'} secondary={msg}  />
                                     </ListItem>
                                     </React.Fragment>
                                 ))}
                                 </List>
+                                <Paper component="form" >
+                                    <IconButton aria-label="menu">
+                                        <MenuIcon />
+                                    </IconButton>
+                                    <InputBase
+                                        onChange={this.onChangeMessage}
+                                        style={{
+                                            flex: 2,
+                                        }}
+                                        placeholder="Send a message"
+                                        inputProps={{ 'aria-label': 'send a message' }}
+                                        value={this.state.msg}
+                                    />
+                                    <IconButton type="submit" onClick={this.onSubmitMessage(socket)} aria-label="search">
+                                        <SendIcon />
+                                    </IconButton>
+                                </Paper>
                             </Paper>
                         </Grid>
                     </Grid>                   
