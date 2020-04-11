@@ -1,72 +1,38 @@
 {{> partials/header }}
-<script>
-    var wolf = false;
-</script>
-<style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    #role {
-        width: 100%;
-        background: #ddd;
-        text-align: center;
-    }
-    span {
-        position: absolute;
-        margin: .25rem;
-        right: 0;
-        background: #000;
-        color: #eee;
-        padding: .25rem;
-        border-radius: 2px;
-        font-size: .66rem;
-    }
-    #chats {
-        position: absolute;
-        max-height: 78vh;
-        width: 100%;
-        overflow-y: scroll;
-        margin-bottom: 2em;
-    }
-    .pagecontainer {
-        position: relative;
-        margin: 1rem;
-    }
-    .forms {position: fixed; bottom: .5em; left: .5em; width: 98%; max-height: 20vh;}
-    #messages {position: relative; width: 100%; list-style-type: none; margin: 0; padding: 0;}
-    #messages li { position: relative; width: 100%;
-         padding: 5px 10px;
-    }
-    #messages li:nth-child(odd):not(.wolves) { background: #eee; }
-    .wolves{ background: #fee; }
-    .wolves:nth-child(odd) { background: #fdd; }
-    .server {
-        font-style: italic;
-    }
-</style>
-<div class="pagecontainer">
-    <div id="role"></div>
-    <div id="chats">
-        <ul id="messages"></ul>
-    </div>
-    <div class="forms">
-        <form id="villagerForm" action="" class="is-primary">
-            <div class="field has-addons">
-                <div class="control is-expanded">
-                    <div class="select is-fullwidth">
-                        <select name="cmd" id="mtype">
-                            <option value="chat">Chat</option>
-                            <option value="wolf">Werewolf</option>
-                            <option value="dm">DM - WIP</option>
-                            <option value="init">Init game</option>
-                            <option value="nick">Change nick</option>
-                        </select>
+
+<div id="react"></div>
+
+<!--
+<h1 class="title" id="role">Player</h1>
+<h2 class="subtitle town"></h2>
+<div class="container">
+    <div class="columns">
+        <div id="dashboard" class="column">
+            <h2 class="subtitle">Dashboard</h2>
+            <!- TODO dashboard ->
+        </div>
+        <div id="chats" class="column">
+            <h2 class="subtitle">Chat and logs</h2>
+            <ul id="messages"></ul>
+            <form id="villagerForm" action="" class="is-primary">
+                <div class="field has-addons has-addons-centered">
+                    <div class="control is-expanded">
+                        <div class="select is-fullwidth">
+                            <select name="cmd" id="mtype">
+                                <option value="chat">💬 - Chat</option>
+                                <option value="wolf">🐺 - Werewolf</option>
+                                <option value="dm">➡️ - DM - WIP</option>
+                                <option value="nick">✏️ - Change nick</option>
+                            </select>
+                        </div>
+                    </div>
+                    <input id="m" class="input" autocomplete="off" />
+                    <div class="control">
+                        <button type="submit" class="button is-primary">Send</button>
                     </div>
                 </div>
-                <input id="m" class="input" autocomplete="off" />
-                <div class="control">
-                    <button type="submit" class="button is-primary">Send</button>
-                </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
 <script src="/socket.io/socket.io.js"></script>
@@ -75,60 +41,63 @@
     $(function (global) {
         var url = new URL(window.location.href);
         var socket = io.connect(window.location.host + '/general');
-        var nick =  url.searchParams.get("nick") || "villager" + new Date().getTime().toString();
-        var inProgress = false;
-        global.role = "Viewer";
+        global.nick = "villager" + new Date().getTime().toString();
+        global.role = "Player";
         global.wolf = false;
         global.wolves = undefined;
         room = window.location.hash.toString();
 
         console.log(room);
 
-        socket.emit('join room', room);
+        $('.town').text('on '+room);
 
+        socket.emit('join room', room, global.nick);
 
         socket.on('connect', function () {
-            socket.emit('new connection', nick);
-            if (nick == "GAMEMASTER")
-            {
-                var w = url.searchParams.get("w");
-                var v = url.searchParams.get("v");
-                var r = url.searchParams.get("r");                
-                socket.emit('init game', {
-                    room,
-                    w: w || 2,
-                    v: v || 2,
-                    r: r || 31
-                });
-            }
-               
-            else alert("Only GAMEMASTER has permissions to init games");
+            socket.emit('new connection', global.nick);
+            var n = global.nick;
+            socket.on('disconnect', function(room, n) {
+                socket.emit('disconnection', room, n);
+            });
         });
 
         $('#villagerForm').submit(function(e){
             e.preventDefault();
-
+            var n = global.nick;
             mtype = $('#mtype').val();
             msg = $('#m').val();
             switch (mtype) {
                 case "wolf":
-                    if (global.wolf) wolves.emit('wolf message', { room, nick, msg });
-                    else alert("You are not a Werewolf!");
+                    global.wolf
+                        ? wolves.emit('wolf message', room, n, msg)
+                        : alert("You are not a Werewolf!");
                     break;
-                case "iden":
-                    if (global.role == "GAMEMASTER")
-                        socket.emit('get identities', room);
-                    else alert("You don't have permissions to get identities!");
-                    break;
+                /*
+
+            TODO: I must create the DM message to other players...
+            TODO: Getting the role by pressing a button should be better.
+
                 case "role":
                     if (global.role == "Viewer")
                         socket.emit('request role', room, nick);
                     else alert("You do have a role!");
                     break;
+                    
+            TODO: Init game, identify players and abort game should be done
+            by the Game Master in the Dashboard!
+
+
+                case "iden":
+                    if (global.role == "GAMEMASTER")
+                        socket.emit('get identities', room);
+                    else alert("You don't have permissions to get identities!");
+                    break;
                 case "abrt":
                     if (global.role == "GAMEMASTER") socket.emit('abort game', room);
                     else alert("You don't have permissions to abort the game!");
                     break;
+
+                */
                 case "init":
                     if (nick == "GAMEMASTER")
                         socket.emit('init game', {
@@ -140,12 +109,13 @@
                     else alert("Only GAMEMASTER has permissions to init games");
                     break;
                 case "nick":
-                    socket.emit('change nick', room, nick, msg.split(" ")[0]);
-                    nick = msg.split(" ")[0];
+                    socket.emit('change nick', room, n, msg.split(" ")[0]);
+                    global.nick = msg.split(" ")[0];
                     break;
                 case "chat":
-                    if (msg != "") socket.emit('chat message', room, nick, msg);
-                    else alert("Message is empty!");
+                    msg != ""
+                        ? socket.emit('chat message', room, n, msg)
+                        : alert("Message is empty!");
                     break;
                 default:
                     alert("ERROR: Command not found.");
@@ -155,39 +125,62 @@
             $('#mtype').val('chat');
             return false;
         });
+
         socket.on('chat message', function(nick, msg) {
-            $('#messages').append($('<li>').text(msg).append($('<span class="tag is-' + (nick == "GAMEMASTER" ? "info" : "dark") + '">').text(nick)));
+            $('#messages')
+                .append($('<li>')
+                    .text(msg)
+                    .append($('<span class="tag is-' + (nick == "GAMEMASTER" ? "info" : "dark") + '">')
+                        .text(nick)));
+            $("#messages").animate({ scrollTop: ($("#messages").children('li').length - 1) * 100 }, 100);
         });
         socket.on('role assignation', function(r) {
-            $('#role').append($('<h1>').text(r));
+            $('#role').text(r);
             global.role = r;
             $('#messages').append($('<li class="server">').text('Your role is now ' + r + '!'));
+            $("#messages").animate({ scrollTop: ($("#messages").children('li').length - 1) * 100 }, 100);
             if (r == "Werewolf" || r == "GAMEMASTER") {
+                if (r == "GAMEMASTER") global.nick = "GAMEMASTER";
                 global.wolf = true;
-                global.wolves = io.connect(window.location.host + '/wolves').join(room);
-                global.wolves.on('wolf message', function(msg) {
-                    $('#messages').append($('<li class="wolves">').text(msg.msg).append($('<span class="tag is-' + (msg.nick == "GAMEMASTER" ? "info" : "danger") + '">').text(msg.nick)));
+                global.wolves = io.connect(window.location.host + '/wolves');
+                
+                global.wolves.on('connect', function() {
+                    global.wolves.emit('join wolves', room);
+                });
+                global.wolves.on('wolf message', function(nick, msg) {
+                    $('#messages')
+                        .append($('<li class="wolves">')
+                            .text(msg)
+                            .append($('<span class="tag is-danger">')
+                                .text(nick)));
                 });
             }
-        });
-        socket.on('progress', function(progress) {
-            inProgress = progress;
+            $("#messages").animate({ scrollTop: ($("#messages").children('li').length - 1) * 100 }, 100);
         });
         socket.on('game aborted', function() {
             $('#messages').append($('<li class="server is-danger">').text('Game aborted! Reload page.'));
+            $("#messages").animate({ scrollTop: ($("#messages").children('li').length - 1) * 100 }, 100);
         });
         socket.on('no role available', function() {
             $('#messages').append($('<li class="server is-danger">').text('No role available.'));
+            $("#messages").animate({ scrollTop: ($("#messages").children('li').length - 1) * 100 }, 100);
         });
         socket.on('gamemaster', function(code) {
             $('#messages').append($('<li class="server">').text('You have created the game!'));
+            $("#messages").animate({ scrollTop: ($("#messages").children('li').length - 1) * 100 }, 100);
         });
         socket.on('nick changed', function (msg) {
             $('#messages').append($('<li class="server">').text(msg.oldNick + ' is now ' + msg.newNick));
+            $("#messages").animate({ scrollTop: ($("#messages").children('li').length - 1) * 100 }, 100);
         });
         socket.on('get identities', function (msg) {
             $('#messages').append($('<li class="server">').text(msg));
+            $("#messages").animate({ scrollTop: ($("#messages").children('li').length - 1) * 100 }, 100);
         });
+        socket.on('leaving', function (nick) {
+            $('#messages').append($('<li class="server">').text(nick + ' left.'));
+            $("#messages").animate({ scrollTop: ($("#messages").children('li').length - 1) * 100 }, 100);
+        })
     }(this));
-</script>
+</script> <!- -->
 {{> partials/footer }}

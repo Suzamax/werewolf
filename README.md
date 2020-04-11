@@ -1,6 +1,26 @@
 # Werewolf
-## El pueblo duerme, ahora online!
-
-![wolf](./src/assets/img/wolf.png)
+## An online Town Sleeps game
 
 Personal project lol
+
+## Technologic stack
+
+### Languages
+
+* TypeScript
+
+### Backend
+
+* Node.js
+* Express.js
+* Socket.IO
+
+### Frontend
+
+* React
+* Material UI
+
+### Compilers/Packers/etc...
+
+* Webpack
+* Gulp

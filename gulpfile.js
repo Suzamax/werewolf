@@ -1,11 +1,21 @@
 const { src, dest, parallel } = require('gulp');
+const path = require('path');
+const webpack = require('webpack-stream');
 const ts = require('gulp-typescript');
 const sass = require('gulp-sass');
+const SASS_INC_PATHS = [
+    path.join(__dirname, 'node_modules')
+];
 
 sass.compiler = require('node-sass');
 
-const css = () => src('./src/assets/*.sass')
-    .pipe(sass().on('error', sass.logError))
+const wp = () => src('./src/components/**/*.tsx')
+    .pipe(webpack(require('./webpack.config.js')))
+    .pipe(dest('./dist/public/js'))
+;
+
+const css = () => src('./src/assets/sass/*.sass')
+    .pipe(sass({ includePaths: SASS_INC_PATHS }).on('error', sass.logError))
     .pipe(dest('./dist/public/css'))
 ;
 
@@ -19,6 +29,7 @@ const views = () => src("./src/views/**/*.mustache")
 ;
 
 exports.views = views;
+exports.wp = wp;
 exports.css = css;
 exports.js = js;
-exports.default = parallel(css, js, views);
+exports.default = parallel(css, js, wp, views);
